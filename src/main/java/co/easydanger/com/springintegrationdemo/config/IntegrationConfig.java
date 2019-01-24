@@ -11,7 +11,13 @@ import org.springframework.integration.config.EnableIntegration;
 import org.springframework.integration.json.JsonToObjectTransformer;
 import org.springframework.integration.json.ObjectToJsonTransformer;
 import org.springframework.integration.support.json.Jackson2JsonObjectMapper;
+import org.springframework.integration.transformer.HeaderEnricher;
+import org.springframework.integration.transformer.support.HeaderValueMessageProcessor;
+import org.springframework.integration.transformer.support.StaticHeaderValueMessageProcessor;
 import org.springframework.messaging.MessageChannel;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @EnableIntegration
@@ -28,8 +34,18 @@ public class IntegrationConfig {
         return new DirectChannel();
     }
 
+    @Bean @Transformer(inputChannel = "integration.student.gateway.channel", outputChannel = "integration.student.toConvertObject.channel")
+    public HeaderEnricher enrichHeader() {
+        Map<String, HeaderValueMessageProcessor<String>> headersToAdd = new HashMap<>();
+        headersToAdd.put("Header1", new StaticHeaderValueMessageProcessor<String>("Test Header #1"));
+        headersToAdd.put("Header2", new StaticHeaderValueMessageProcessor<String>("Test Header #2"));
+        HeaderEnricher enricher = new HeaderEnricher(headersToAdd);
+        return enricher;
+    }
+
+
     @Bean
-    @Transformer(inputChannel = "integration.student.gateway.channel", outputChannel = "integration.student.objectToJson.channel")
+    @Transformer(inputChannel = "integration.student.toConvertObject.channel", outputChannel = "integration.student.objectToJson.channel")
     public ObjectToJsonTransformer objectToJsonTransformer() {
         return new ObjectToJsonTransformer(getMapper());
     }
@@ -42,7 +58,7 @@ public class IntegrationConfig {
 
     @Bean
     @Transformer(inputChannel = "integration.student.jsonToObject.channel", outputChannel = "integration.student.jsonToObject.fromTransformer.channel")
-    JsonToObjectTransformer jsonToObjectTransformer(){
+    JsonToObjectTransformer jsonToObjectTransformer() {
         return new JsonToObjectTransformer(Student.class);
     }
 
